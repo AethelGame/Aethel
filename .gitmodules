@@ -1,6 +1,7 @@
 [submodule "assets"]
 	path = assets
 	url = https://github.com/AethelGame/Aethel.Assets
+	branch = main
 [submodule "vendored/glfw"]
 	path = vendored/glfw
 	url = https://github.com/glfw/glfw
