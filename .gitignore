@@ -1,0 +1,4 @@
+.vscode/
+output/
+vendored/include/
+vendored/BASS/
