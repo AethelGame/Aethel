@@ -28,6 +28,8 @@ class Renderer2D;
 class TextRenderer;
 class InputQueue;
 
+class ActionBar;
+
 struct RenderContext {
     GLuint framebuffer;
     GLuint colorTexture;
@@ -56,6 +58,8 @@ struct AppContext
 
     StateSwitcher switchState = nullptr;
     BaseState* currentState = nullptr;
+
+    ActionBar* actionBar = nullptr;
 
     std::chrono::system_clock::time_point startTime = std::chrono::system_clock::now();
 

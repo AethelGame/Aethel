@@ -36,8 +36,9 @@ public:
     
 protected:
     AppContext* appContext_ = nullptr;
-
     TextObject* textObject_ = nullptr;
+
+    float padding = 4.0f;
     
     double lastTime_ = 0.0;
     double perfFrequency_ = 0.0;

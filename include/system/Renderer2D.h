@@ -17,6 +17,13 @@ struct Color {
         : r(r / 255.0f), g(g / 255.0f), b(b / 255.0f), a(a / 255.0f) {}
 };
 
+struct Rect {
+    float x;
+    float y;
+    float width;
+    float height;
+};
+
 class Renderer2D {
 public:
     Renderer2D();

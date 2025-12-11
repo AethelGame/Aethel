@@ -1,4 +1,5 @@
 #include <states/MainMenuState.h>
+#include <system/AudioManager.h>
 
 void MainMenuState::createButton(const std::string& label, int targetState, float y)
 {
@@ -21,6 +22,10 @@ void MainMenuState::init(AppContext* appContext, void* payload)
     float centerY = screenHeight_ / 2.0f;
     createButton("Play", STATE_MAIN_MENU, centerY - 30.0f);
     createButton("Options", STATE_MAIN_MENU, centerY + 30.0f);
+
+    AudioManager::getInstance().loadMusic("menu_theme", "assets/songs/EGOIST - The Everlasting Guilty Crown/audio.mp3");
+    AudioManager::getInstance().playMusic("menu_theme", 0.7f, true);
+    AudioManager::getInstance().fadeMusicIn(2.0f);
 }
 
 void MainMenuState::handleEvent(const TimedInputEvent& event)
@@ -63,6 +68,9 @@ void MainMenuState::render()
 
 void MainMenuState::destroy()
 {
+    AudioManager::getInstance().fadeMusicOut(1.0f);
+    AudioManager::getInstance().unloadMusic("menu_theme");
+
     if (backgroundTexture_ != 0) {
         appContext->renderer2D->unloadTexture(backgroundTexture_);
         backgroundTexture_ = 0;

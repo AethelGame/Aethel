@@ -5,9 +5,11 @@
 #include "system/Renderer2D.h"
 #include "objects/debug/FPSCounter.h"
 
+class AppContext;
+
 class InfoStackManager {
 public:
-    InfoStackManager() = default;
+    InfoStackManager(AppContext* appContext) : appContext_(appContext) {}
     ~InfoStackManager() {
         for (auto* info : infos_) {
             delete info;
@@ -33,6 +35,8 @@ public:
         for (auto* info : infos_) {
             info->update();
         }
+
+        updatePositions();
     }
     
     void renderAll(Renderer2D* renderer) {
@@ -42,15 +46,21 @@ public:
     }
     
 private:
+    AppContext* appContext_ = nullptr;
     std::vector<FPSCounter*> infos_;
     
     void updatePositions() {
         float currentY = 8.0f;
+        float padding = 12.0f;
+
+        if (appContext_ && appContext_->actionBar) {
+            currentY += appContext_->renderY;
+        }
         
         for (auto* info : infos_) {
             if (auto* fps = dynamic_cast<FPSCounter*>(info)) {
                 fps->setYPosition(currentY);
-                currentY += fps->getHeight() + 4.0f;
+                currentY += fps->getHeight() + padding;
             }
         }
     }

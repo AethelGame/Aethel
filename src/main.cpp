@@ -17,6 +17,11 @@
 #include "system/InputQueue.h"
 #include "system/Renderer2D.h"
 #include "system/TextRenderer.h"
+#include <system/AudioManager.h>
+
+#include <objects/ActionBar.h>
+#include <objects/actions/ActionTest.h>
+#include <objects/actions/ActionClock.h>
 
 BaseState *state = nullptr;
 void* statePayload = nullptr;
@@ -328,7 +333,13 @@ int main(int argc, char* argv[])
         return -1;
     }
 
-    Utils::loadWindowIcon(window, "assets/icon.bmp");
+    GLFWmonitor* primary = glfwGetPrimaryMonitor();
+    const GLFWvidmode* mode = glfwGetVideoMode(primary);
+    int xPos = (mode->width - WINDOW_WIDTH) / 2;
+    int yPos = (mode->height - WINDOW_HEIGHT) / 2;
+    glfwSetWindowPos(window, xPos, yPos);
+
+    Utils::loadWindowIcon(window, "assets/icon.png");
     
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
@@ -387,19 +398,30 @@ int main(int argc, char* argv[])
 
     GAME_LOG_INFO("Text renderer initialized successfully");
 
-    app->infoStack = new InfoStackManager();
+    app->actionBar = new ActionBar(app);
+    app->actionBar->addAddon(new ActionTest(app));
+    app->actionBar->addAddon(new ActionClock(app));
+
+    app->infoStack = new InfoStackManager(app);
     
     FPSCounter* fpsCounter = new FPSCounter(app->textRenderer, MAIN_FONT_PATH, 16, 8.0f);
     fpsCounter->setAppContext(app);
     app->infoStack->addInfo(fpsCounter);
     app->fpsCounter = fpsCounter;
     
-    /*DebugInfo* debugInfo = new DebugInfo(app->textRenderer, MAIN_FONT_PATH, 16, 8.0f);
+    DebugInfo* debugInfo = new DebugInfo(app->textRenderer, MAIN_FONT_PATH, 16, 8.0f);
     debugInfo->setAppContext(app);
     app->infoStack->addInfo(debugInfo);
-    app->debugInfo = debugInfo;*/
+    app->debugInfo = debugInfo;
 
     GAME_LOG_INFO("App context and subsystems initialized successfully");
+
+    if (!AudioManager::getInstance().initialize()) {
+        GAME_LOG_ERROR("Failed to initialize audio system");
+        return -1;
+    }
+
+    GAME_LOG_INFO("Audio system initialized successfully");
     
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -417,6 +439,8 @@ int main(int argc, char* argv[])
         double currentTime = glfwGetTime();
         float deltaTime = (float)(currentTime - lastFrameTime);
         lastFrameTime = currentTime;
+
+        AudioManager::getInstance().update(deltaTime);
         
         TimedInputEvent inputEvent;
         while (globalInputQueue.dequeue(inputEvent)) {
@@ -495,6 +519,10 @@ int main(int argc, char* argv[])
         if (app->infoStack) {
             app->infoStack->updateAll();
         }
+
+        if (app->actionBar) {
+            app->actionBar->update(deltaTime);
+        }
         
         glBindFramebuffer(GL_FRAMEBUFFER, app->renderTarget->framebuffer);
         glViewport(0, 0, (int)app->renderWidth, (int)app->renderHeight);
@@ -504,6 +532,10 @@ int main(int argc, char* argv[])
         {
             state->update(deltaTime);
             state->render();
+        }
+
+        if (app->actionBar) {
+            app->actionBar->render();
         }
         
         if (app->infoStack) {
@@ -558,10 +590,16 @@ int main(int argc, char* argv[])
     }
     
     Logger::getInstance().shutdown();
+    AudioManager::getInstance().shutdown();
     
     if (app->infoStack) {
         delete app->infoStack;
         app->infoStack = nullptr;
+    }
+
+    if (app->actionBar) {
+        delete app->actionBar;
+        app->actionBar = nullptr;
     }
     
     app->fpsCounter = nullptr;

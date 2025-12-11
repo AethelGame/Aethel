@@ -44,7 +44,6 @@ TextRenderer::TextRenderer(int screenWidth, int screenHeight)
 }
 
 TextRenderer::~TextRenderer() {
-    // Clean up all fonts
     for (auto& pair : fonts_) {
         for (auto& charPair : pair.second.characters) {
             glDeleteTextures(1, &charPair.second.textureID);
@@ -72,7 +71,6 @@ bool TextRenderer::initFreeType() {
 bool TextRenderer::loadFont(const std::string& fontPath, int fontSize) {
     FontKey key = {fontPath, fontSize};
     
-    // If already loaded, skip
     if (fonts_.find(key) != fonts_.end()) {
         GAME_LOG_DEBUG("Font already loaded: " + fontPath + " size " + std::to_string(fontSize));
         return true;
@@ -94,7 +92,6 @@ bool TextRenderer::loadFont(const std::string& fontPath, int fontSize) {
     FT_Set_Pixel_Sizes(fontData.face, 0, fontSize);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     
-    // Load ASCII characters
     for (unsigned char c = 0; c < 128; c++) {
         if (FT_Load_Char(fontData.face, c, FT_LOAD_RENDER)) {
             std::cerr << "Failed to load glyph: " << c << std::endl;
@@ -140,7 +137,6 @@ FontData* TextRenderer::getFontData(const std::string& fontPath, int fontSize) {
     auto it = fonts_.find(key);
     
     if (it == fonts_.end()) {
-        // Try to load it
         if (!loadFont(fontPath, fontSize)) {
             return nullptr;
         }
@@ -230,7 +226,6 @@ void TextRenderer::renderText(const std::string& text, float x, float y, float s
     glActiveTexture(GL_TEXTURE0);
     glBindVertexArray(VAO_);
     
-    // For center/right alignment, we need to calculate line widths first
     std::vector<float> lineWidths;
     if (alignment != TEXT_ALIGN_LEFT) {
         float currentLineWidth = 0;
@@ -242,13 +237,12 @@ void TextRenderer::renderText(const std::string& text, float x, float y, float s
                 currentLineWidth += (fontData->characters[c].advance >> 6) * scale;
             }
         }
-        lineWidths.push_back(currentLineWidth); // Last line
+        lineWidths.push_back(currentLineWidth);
     }
     
     float startX = x;
     int currentLine = 0;
     
-    // Apply alignment offset for current line
     if (alignment == TEXT_ALIGN_CENTER && currentLine < lineWidths.size()) {
         x = startX - (lineWidths[currentLine] / 2.0f);
     } else if (alignment == TEXT_ALIGN_RIGHT && currentLine < lineWidths.size()) {
@@ -265,7 +259,6 @@ void TextRenderer::renderText(const std::string& text, float x, float y, float s
                 y += (fontSize * scale) + lineGap;
             }
             currentLine++;
-            // Recalculate x for next line based on alignment
             if (alignment == TEXT_ALIGN_CENTER && currentLine < lineWidths.size()) {
                 x = startX - (lineWidths[currentLine] / 2.0f);
             } else if (alignment == TEXT_ALIGN_RIGHT && currentLine < lineWidths.size()) {
@@ -322,42 +315,41 @@ void TextRenderer::getTextSize(const std::string& text, float scale, float& widt
     
     width = 0;
     height = 0;
-    
+
+    float lineHeightPx = 0;
+    if (fontData->characters.find('H') != fontData->characters.end()) {
+        lineHeightPx = fontData->characters['H'].size.y * scale;
+    } else {
+        lineHeightPx = fontSize * scale;
+    }
+
     float lineWidth = 0;
-    float lineHeight = 0;
-    int lineCount = 0;
+    int lineCount = 1;
     
     for (char c : text) {
         if (c == '\n') {
             if (lineWidth > width) width = lineWidth;
-            height += lineHeight;
-            lineCount++;
             lineWidth = 0;
-            lineHeight = 0;
+            lineCount++;
             continue;
         }
         
-        if (fontData->characters.find(c) == fontData->characters.end()) {
+        auto it = fontData->characters.find(c);
+        if (it == fontData->characters.end()) {
             continue;
         }
         
-        Character ch = fontData->characters[c];
-        lineWidth += (ch.advance >> 6) * scale;
-        
-        float charHeight = ch.size.y * scale;
-        if (charHeight > lineHeight) lineHeight = charHeight;
+        lineWidth += (it->second.advance >> 6) * scale;
     }
     
     if (lineWidth > width) width = lineWidth;
-    height += lineHeight;
-    
-    // Add line gaps (gaps between lines, not after the last line)
-    if (lineCount > 0) {
-        height += lineGap * lineCount;
+
+    height = lineCount * lineHeightPx;
+    if (lineCount > 1) {
+        height += lineGap * (lineCount - 1);
     }
 }
 
-// TextObject implementation
 TextObject::TextObject(TextRenderer* renderer, const std::string& fontPath, int fontSize)
     : renderer_(renderer), fontPath_(fontPath), fontSize_(fontSize),
       posX_(0), posY_(0), anchorX_(0), anchorY_(0),
@@ -365,7 +357,6 @@ TextObject::TextObject(TextRenderer* renderer, const std::string& fontPath, int 
       textAlignment_(TEXT_ALIGN_LEFT), alignmentX_(ALIGN_LEFT), alignmentY_(ALIGN_TOP),
       cachedWidth_(0), cachedHeight_(0) {
     
-    // Load font (will be cached if already loaded)
     if (!renderer_->loadFont(fontPath, fontSize)) {
         GAME_LOG_ERROR("Failed to load font in TextObject: " + fontPath);
     }
@@ -398,6 +389,10 @@ void TextObject::updateDimensions() {
     }
     
     renderer_->getTextSize(text_, scale_, cachedWidth_, cachedHeight_, fontPath_, fontSize_, textGap_);
+}
+
+void TextObject::getPosition(float& x, float& y) const {
+    calculateRenderPosition(x, y);
 }
 
 void TextObject::calculateRenderPosition(float& renderX, float& renderY) const {

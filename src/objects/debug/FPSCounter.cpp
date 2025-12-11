@@ -20,8 +20,9 @@
 
 FPSCounter::FPSCounter(TextRenderer* textRenderer, const std::string &fontPath, int fontSize, float yPos)
 {
-    textObject_ = new TextObject(textRenderer, fontPath, fontSize);
+    textObject_ = new TextObject(textRenderer, fontPath, fontSize * 4.0f);
     
+    textObject_->setScale(0.25f);
     textObject_->setPosition(8.0f, yPos);
     textObject_->setTextGap(4.0f);
     textObject_->setColor(1.0f, 1.0f, 1.0f, 1.0f);
@@ -123,13 +124,11 @@ void FPSCounter::render(Renderer2D* renderer)
     float textW = textObject_->getRenderedWidth();
     float textH = textObject_->getRenderedHeight();
 
-    float padding = 4.0f;
-
     renderer->drawRect(
         textX - padding,
-        textY - padding + (padding / 2.0f),
+        textY - padding,
         textW + (2.0f * padding),
-        textH + (2.0f * padding) - padding,
+        textH + (2.0f * padding),
         Color(0.0f, 0.0f, 0.0f, 0.5f)
     );
 

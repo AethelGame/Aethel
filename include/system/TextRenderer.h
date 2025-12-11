@@ -30,7 +30,6 @@ struct Character {
     unsigned int advance;
 };
 
-// Font cache key: combines path and size
 struct FontKey {
     std::string path;
     int size;
@@ -41,7 +40,6 @@ struct FontKey {
     }
 };
 
-// Font data stored per font
 struct FontData {
     std::map<char, Character> characters;
     FT_Face face;
@@ -67,14 +65,13 @@ private:
     void setupBuffers();
     
     FT_Library ft_;
-    std::map<FontKey, FontData> fonts_;  // Store multiple fonts
+    std::map<FontKey, FontData> fonts_; 
     
     GLuint shaderProgram_;
     GLuint VAO_, VBO_;
     glm::mat4 projection_;
     int screenWidth_, screenHeight_;
     
-    // Helper to get font data
     FontData* getFontData(const std::string& fontPath, int fontSize);
 };
 
@@ -102,7 +99,7 @@ public:
     
     float getRenderedWidth() const { return cachedWidth_; }
     float getRenderedHeight() const { return cachedHeight_; }
-    void getPosition(float& x, float& y) const { x = posX_; y = posY_; }
+    void getPosition(float& x, float& y) const;
     
     float getAnchorX() const { return anchorX_; }
     float getAnchorY() const { return anchorY_; }
