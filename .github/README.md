@@ -1,6 +1,6 @@
 # Aethel
 
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![License](https://img.shields.io/github/license/AethelGame/Aethel)](https://opensource.org/license/mpl-2-0)
 [![GitHub stars](https://img.shields.io/github/stars/ItzFireable/untitled-rhythm-game.svg?style=social&label=Star)](https://github.com/ItzFireable/untitled-rhythm-game)
 
 > [!NOTE]
