@@ -80,24 +80,33 @@ find_package(OpenGL REQUIRED)
 message(STATUS "Found OpenGL: ${OPENGL_LIBRARIES}")
 
 if(WIN32)
-    # FIX: Use bass.lib for linking in both Debug and Release configs
+    # Pick the correct BASS import lib/DLL based on pointer size
+    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+        set(_BASS_LIB     "${CMAKE_CURRENT_SOURCE_DIR}/vendored/BASS/c/x64/bass.lib")
+        set(_BASS_RUNTIME "${CMAKE_CURRENT_SOURCE_DIR}/vendored/BASS/x64/bass.dll")
+    else()
+        set(_BASS_LIB     "${CMAKE_CURRENT_SOURCE_DIR}/vendored/BASS/c/bass.lib")
+        set(_BASS_RUNTIME "${CMAKE_CURRENT_SOURCE_DIR}/vendored/BASS/bass.dll")
+    endif()
+
+    # Import library for both configs (same file per arch)
     set_property(TARGET BASS PROPERTY IMPORTED_IMPLIB_DEBUG
-        "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/bass.lib"
+        "${_BASS_LIB}"
     )
     set_property(TARGET BASS PROPERTY IMPORTED_IMPLIB_RELEASE
-        "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/bass.lib"
+        "${_BASS_LIB}"
     )
     
-    # The DLL names for runtime copying remain different, which is correct
+    # Point imported location at the vendor DLL; we also copy it next to the exe
     set_property(TARGET BASS PROPERTY IMPORTED_LOCATION_DEBUG
-        "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/bassd.dll"
+        "${_BASS_RUNTIME}"
     )
     set_property(TARGET BASS PROPERTY IMPORTED_LOCATION_RELEASE
-        "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/bass.dll"
+        "${_BASS_RUNTIME}"
     )
 
-    # FIX: Copy the BASS import library during configuration (PRE_LINK was unreliable)
-    file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/vendored/BASS/c/bass.lib"
+    # Copy the import lib to the binary lib dir for the link step
+    file(COPY "${_BASS_LIB}"
      DESTINATION "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}"
     )
 
@@ -124,7 +133,6 @@ PRIVATE
     glm::glm
     freetype
     OpenGL::GL
-    pthread
     glad
 )
 
@@ -132,8 +140,11 @@ if(WIN32)
     target_link_libraries(Aethel PRIVATE Dbghelp)
 endif()
 
-if(UNIX AND NOT APPLE)
-    target_link_libraries(Aethel PRIVATE dl)
+if(UNIX)
+    target_link_libraries(Aethel PRIVATE pthread)
+    if(NOT APPLE)
+        target_link_libraries(Aethel PRIVATE dl)
+    endif()
 endif()
 
 message(STATUS "Configuring POST_BUILD steps (Asset/BASS Runtime Copy)...")
@@ -155,15 +166,20 @@ add_custom_command(TARGET Aethel POST_BUILD
 )
 
 if(WIN32)
-    set(BASS_DLL_NAME "$<IF:$<CONFIG:Debug>,bass.dll,bass.dll>")
-    set(BASS_DLL_SRC "${CMAKE_CURRENT_SOURCE_DIR}/vendored/BASS/${BASS_DLL_NAME}")
-    set(BASS_DLL_DST "$<TARGET_FILE_DIR:Aethel>/${BASS_DLL_NAME}")
+    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+        set(_BASS_RUNTIME "${CMAKE_CURRENT_SOURCE_DIR}/vendored/BASS/x64/bass.dll")
+    else()
+        set(_BASS_RUNTIME "${CMAKE_CURRENT_SOURCE_DIR}/vendored/BASS/bass.dll")
+    endif()
+
+    set(BASS_DLL_SRC "${_BASS_RUNTIME}")
+    set(BASS_DLL_DST "$<TARGET_FILE_DIR:Aethel>/bass.dll")
     
     add_custom_command(TARGET Aethel POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${BASS_DLL_SRC}"
             "${BASS_DLL_DST}"
-        COMMENT "Copying BASS runtime DLL (Config-dependent)."
+        COMMENT "Copying BASS runtime DLL."
     )
 elseif(UNIX)
     add_custom_command(TARGET Aethel POST_BUILD

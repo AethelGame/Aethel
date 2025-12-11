@@ -15,6 +15,7 @@ if %errorlevel% neq 0 (
 echo Build successful.
 
 echo Running %EXECUTABLE_NAME%...
-"%BUILD_DIR%\bin\%EXECUTABLE_NAME%"
+cd "%BUILD_DIR%\bin"
+"%EXECUTABLE_NAME%"
 
 endlocal
